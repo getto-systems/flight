@@ -1,6 +1,6 @@
 local cjson = require "cjson"
 
-local script = "sudo /usr/local/openresty/nginx/conf/scripts/flight.sh"
+local script = "sudo /apps/flight/scripts/flight.sh"
 local docker_host = os.getenv("DOCKER_HOST")
 if docker_host == nil then
   docker_host = "unix:///var/run/docker.sock"

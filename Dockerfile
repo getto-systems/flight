@@ -8,6 +8,7 @@ RUN : \
  && adduser nginx -D -H \
  && :
 
-RUN echo 'nginx ALL=(ALL) NOPASSWD: /usr/local/openresty/nginx/conf/scripts/flight.sh' > /etc/sudoers.d/nginx-nopasswd
+RUN echo 'nginx ALL=(ALL) NOPASSWD: /apps/flight/scripts/flight.sh' > /etc/sudoers.d/nginx-nopasswd
 
 COPY conf /usr/local/openresty/nginx/conf
+COPY scripts /app/flight/scripts

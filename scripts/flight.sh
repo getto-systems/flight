@@ -5,12 +5,12 @@ path=$1; shift
 auth=$1; shift
 data=$1; shift
 
-root=/usr/local/openresty/nginx
-routes=$root/conf/routes
-log=$root/logs/error.log
+log=/usr/local/openresty/nginx/logs/error.log
+
+routes=/apps/flight/routes
 
 shell_container=alpine
-auth_container=alpine
+auth_container=getto/flight-auth-phoenix:0.0.0-pre5
 
 export DOCKER_HOST=$docker_host
 
@@ -50,8 +50,7 @@ flight_main(){
     fi
 
     auth_key=`cat $auth_key_path`
-    #role=`docker run --rm $auth_container verify "$auth_key" "$token" "$expire"`
-    role=admin
+    role=`docker run --rm --cap-drop=all -u 1000:1000 $auth_container flight_auth verify "$auth_key" --token "$token" --expire "$expire"`
     if [ -z "$role" ]; then
       flight_error 401 "unauthorized" $unauthorized_json_path 'error=\"invalid_token\"'
       return
@@ -69,15 +68,15 @@ flight_main(){
   work=/flight-work
 
   if [ ! -f $env_path ]; then
-    env=""
+    env_param=""
   else
-    env=`cat $env_path | base64`
+    env_param="--env-file $env_path"
   fi
 
-  docker run --rm -v ${volume}:${work} -w ${work} $shell_container /bin/sh -c 'echo '"$data"' | base64 -d > data.json; echo '"$env"' | base64 -d > _env'
+  docker run --rm --cap-drop=all -u 1000:1000 -v ${volume}:${work} -w ${work} $shell_container /bin/sh -c 'echo '"$data"' | base64 -d > data.json'
 
   cat $containers_path | while read line; do
-    docker run --rm -v ${volume}:${work} -w ${work} $line > $log
+    docker run --rm --cap-drop=all -u 1000:1000 -v ${volume}:${work} -w ${work} $env_param $line > $log
     if [ "$?" != 0 ]; then
       exit 1
     fi
@@ -93,7 +92,7 @@ flight_main(){
     result_file=`cat $result_file_name_path`
   fi
 
-  body=`docker run --rm -v ${volume}:${work} -w ${work} $shell_container /bin/sh -c "if [ -f $result_file ]; then cat $result_file; fi" | base64`
+  body=`docker run --rm --cap-drop=all -u 1000:1000 -v ${volume}:${work} -w ${work} $shell_container /bin/sh -c "if [ -f $result_file ]; then cat $result_file; fi" | base64`
   if [ -z "$body" ]; then
     flight_error 404 "not found" $not_found_json_path
     return
