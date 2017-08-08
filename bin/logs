@@ -1,0 +1,2 @@
+#!/bin/bash
+flt logs | tail -100
