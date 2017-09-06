@@ -1,16 +1,10 @@
 #!/bin/sh
 
-docker_host=$1: shift
-data=$1; shift
-container=$1; shift
-key=$1; shift
-expire=$1; shift
-
-docker_host=$(echo "$docker_host" | base64 -d)
-data=$(echo "$data" | base64 -d)
-container=$(echo "$container" | base64 -d)
-key=$(echo "$key" | base64 -d)
-expire=$(echo "$expire" | base64 -d)
+docker_host=$(echo "$1" | base64 -d): shift
+data=$(echo "$1" | base64 -d); shift
+container=$(echo "$1" | base64 -d); shift
+key=$(echo "$1" | base64 -d); shift
+expire=$(echo "$1" | base64 -d); shift
 
 export DOCKER_HOST=$docker_host
 

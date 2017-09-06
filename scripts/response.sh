@@ -1,14 +1,9 @@
 #!/bin/sh
 
-docker_host=$1: shift
-data=$1; shift
-line=$1; shift
-env_file=$1; shift
-
-docker_host=$(echo "$docker_host" | base64 -d)
-data=$(echo "$data" | base64 -d)
-line=$(echo "$line" | base64 -d)
-env_file=$(echo "$env_file" | base64 -d)
+docker_host=$(echo "$1" | base64 -d): shift
+data=$(echo "$1" | base64 -d); shift
+line=$(echo "$1" | base64 -d); shift
+env_file=$(echo "$1" | base64 -d); shift
 
 export DOCKER_HOST=$docker_host
 
