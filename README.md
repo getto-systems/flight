@@ -6,6 +6,12 @@ openresty + docker + lua + sh
 1. run docker container
 1. format response
 
+## run devel server
+
+```
+flt start
+```
+
 ## pull
 
 ```
