@@ -67,7 +67,7 @@ local function command(script,args)
   local command = script.." "..ngx.encode_base64(docker_host)
 
   table.foreach(args, function(i,arg)
-    raw = raw.." "..arg
+    raw = raw.." '"..arg.."'"
     command = command.." "..ngx.encode_base64(arg)
   end)
 
@@ -91,6 +91,7 @@ end
 local function authenticate(content)
   local auth = content["auth"]
   local token
+  local prefix = "Bearer "
   if auth["method"] == "get" then
     local query
     if ngx.var.QUERY_STRING then
@@ -100,7 +101,6 @@ local function authenticate(content)
   elseif auth["method"] == "header" then
     local request_headers = ngx.req.get_headers()
     local header = request_headers["Authorization"]
-    local prefix = "Bearer "
     if string.sub(header,1,string.len(prefix)) == prefix then
       token = string.sub(header,string.len(prefix)+1)
     end
@@ -112,10 +112,10 @@ local function authenticate(content)
 
   local data = cjson.encode({token = token})
   local result, code = command(scripts["auth"],{data,auth["image"],auth["key"],auth["expire"]})
-  local credential = cjson.decode(data)
+  local credential = cjson.decode(result)
 
   if not (code == 0) then
-    response(401, "unauthorized", {authenticate = prefix..'error="invalid_token"'}, content["unauthorized"], content)
+    response(401, result, {authenticate = prefix..'error="invalid_token"'}, content["unauthorized"], content)
   end
 
   if auth["roles"] then
@@ -158,6 +158,9 @@ if data == nil then
   if ngx.var.QUERY_STRING then
     data = cjson.encode(ngx.decode_args(ngx.var.QUERY_STRING, 0))
   end
+end
+if data == nil then
+  data = cjson.encode({})
 end
 
 table.foreach(content["images"], function(i,line)
