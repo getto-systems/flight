@@ -111,18 +111,20 @@ local function authenticate(content)
   end
 
   local data = cjson.encode({token = token})
-  local result, code = command(scripts["auth"],{data,auth["container"],auth["key"],auth["expire"]})
+  local result, code = command(scripts["auth"],{data,auth["image"],auth["key"],auth["expire"]})
+  local credential = cjson.decode(data)
 
   if not (code == 0) then
     response(401, "unauthorized", {authenticate = prefix..'error="invalid_token"'}, content["unauthorized"], content)
   end
 
   if auth["roles"] then
-    local credential = cjson.decode(data)
     if not auth["roles"][credential["role"]] then
       response(403, "forbidden", {authenticate = prefix..'error="insufficient_role"'}, content["unauthorized"], content)
     end
   end
+
+  return credential
 end
 
 
@@ -144,9 +146,11 @@ if ngx.req.get_method() == "OPTIONS" then
   response(200,"ok",nil,nil,content)
 end
 
+local credential = {}
 if content["auth"] then
-  authenticate(content)
+  credential = authenticate(content)
 end
+credential = cjson.encode(credential)
 
 ngx.req.read_body()
 local data = ngx.req.get_body_data()
@@ -156,8 +160,8 @@ if data == nil then
   end
 end
 
-table.foreach(content["containers"], function(i,line)
-  local result, code = command(scripts["response"], {data,line,routes..path.."/_env"})
+table.foreach(content["images"], function(i,line)
+  local result, code = command(scripts["response"], {credential,data,line,routes..path.."/_env"})
   data = result
 
   if not (code == 0) then
