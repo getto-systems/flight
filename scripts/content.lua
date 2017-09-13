@@ -8,15 +8,26 @@ local scripts = {
   response = "sudo "..root.."/scripts/response.sh",
 }
 
+local function load_routes(dir,project)
+  local file = assert(io.open(root.."/"..dir.."/"..project.."/routes.json"))
+  local content = file:read("*a")
+  file:close()
+
+  local json = cjson.decode(content)
+  for path,item in pairs(json) do
+    ngx.shared.routes:set(path, cjson.encode(item))
+  end
+end
 local function init_routes()
   local file = assert(io.open(routes_json))
   local content = file:read("*a")
   file:close()
 
   local json = cjson.decode(content)
-  table.foreach(json, function(i,item)
-    ngx.shared.routes:set(i, cjson.encode(item))
-  end)
+  local dir = json["root"]
+  for i,project in ipairs(json["projects"]) do
+    load_routes(dir,project)
+  end
 
   ngx.shared.routes:set("init", true)
 end
@@ -66,10 +77,10 @@ local function command(script,args)
   local raw = script.." "..docker_host
   local command = script.." "..ngx.encode_base64(docker_host)
 
-  table.foreach(args, function(i,arg)
+  for i,arg in ipairs(args) do
     raw = raw.." '"..arg.."'"
     command = command.." "..ngx.encode_base64(arg)
-  end)
+  end
 
   local handle = assert(io.popen(command))
   local result = handle:read("*a")
@@ -163,8 +174,8 @@ if data == nil then
   data = cjson.encode({})
 end
 
-table.foreach(content["images"], function(i,line)
-  local result, code = command(scripts["response"], {credential,data,line,routes..path.."/_env"})
+for i,line in ipairs(content["commands"]) do
+  local result, code = command(scripts["response"], {credential,data,line,routes..path.."/"..i..".env"})
   data = result
 
   if not (code == 0) then
@@ -184,6 +195,6 @@ table.foreach(content["images"], function(i,line)
 
     response(status, data, nil, content["not_found"], content)
   end
-end)
+end
 
 response(200, data, nil, content["ok"], content)
