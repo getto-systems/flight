@@ -11,9 +11,8 @@ RUN apk add --update \
     tar -xzf /tmp/docker.tgz -C /tmp && \
     mv /tmp/docker/docker /usr/local/bin && \
     rm -rf /tmp/docker* && \
-    echo "nginx ALL=(ALL) NOPASSWD: /apps/getto/base/scripts/auth.sh" >> /etc/sudoers && \
-    echo "nginx ALL=(ALL) NOPASSWD: /apps/getto/base/scripts/response.sh" >> /etc/sudoers && \
     :
 
+COPY sudoers.d /etc/sudoers.d
 COPY conf /usr/local/openresty/nginx/conf
 COPY scripts /app/getto/base/scripts
