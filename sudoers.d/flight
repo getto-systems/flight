@@ -1,0 +1,2 @@
+Cmnd_Alias FLIGHT_CMD = /apps/getto/base/scripts/auth.sh, /apps/getto/base/scripts/response.sh, /apps/getto/base/scripts/volume-create.sh, /apps/getto/base/scripts/volume-delete.sh, /apps/getto/base/scripts/copy-files.sh
+nginx ALL=(ALL) NOPASSWD: FLIGHT_CMD
