@@ -1,6 +1,7 @@
 #!/bin/sh
 
 docker_host=$(echo "$1" | base64 -d); shift
+volume=$(echo "$1" | base64 -d); shift
 credential=$(echo "$1" | base64 -d); shift
 data=$(echo "$1" | base64 -d); shift
 line=$(echo "$1" | base64 -d); shift
@@ -12,7 +13,9 @@ if [ -f "$env_file" ]; then
   env_param="--env-file $env_file"
 fi
 
-result=$(/usr/local/bin/docker run --rm --cap-drop=all -u 1000:1000 $env_param -e FLIGHT_CREDENTIAL="$credential" -e FLIGHT_DATA="$data" $line)
+work=/work/app
+
+result=$(/usr/local/bin/docker run --rm --cap-drop=all -u 1000:1000 -v $volume:$work -w $work $env_param -e FLIGHT_CREDENTIAL="$credential" -e FLIGHT_DATA="$data" $line)
 code=$?
 
 result=$(echo "$result" | base64)
