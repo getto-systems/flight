@@ -169,6 +169,8 @@ end
 
 local function upload(content,volume)
   local upload = require "resty.upload"
+  local data = {}
+
   local chunk = 8192
   local timeout = 10000
 
@@ -178,30 +180,27 @@ local function upload(content,volume)
   local form, err = upload:new(chunk)
   if not form then
     ngx.log(ngx.ERR, "failed to upload: ", err)
-    response(500, "server error", nil, nil, content, volume)
+    return data
   end
 
   form:set_timeout(timeout)
 
   local file
-  local data = {}
 
   while true do
     local typ,res,err = form:read()
     if not typ then
       ngx.log(ngx.ERR, "failed to read: ", err)
-      response(500, "server error", nil, nil, content, volume)
 
     elseif typ == "header" then
       local file_name = upload_file_name(res)
       if file_name then
         file = io.open(dir.."/"..file_name, "w+")
-        if not file then
+        if file then
+          table.insert(data, { name = file_name })
+        else
           ngx.log(ngx.ERR, "failed to write: ", dir.."/"..file_name)
-          response(500, "server error", nil, nil, content, volume)
         end
-
-        table.insert(data, { name = file_name })
       end
     elseif typ == "body" then
       if file then
