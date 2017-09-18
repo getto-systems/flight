@@ -131,7 +131,7 @@ local function authenticate(content)
   end
 
   local data = cjson.encode({token = token})
-  local result, code = command(scripts["auth"],{data,auth["image"],auth["key"],auth["expire"]})
+  local result, code = command(scripts["auth"],{data,cjson.encode(auth)})
   local credential = cjson.decode(result)
 
   if not (code == 0) then
@@ -269,8 +269,8 @@ else
 end
 
 if content["commands"] then
-  for i,line in ipairs(content["commands"]) do
-    local result, code = command(scripts["response"], {volume,credential,data,line,routes..path.."/"..i..".env"})
+  for i,json in ipairs(content["commands"]) do
+    local result, code = command(scripts["response"], {volume,credential,data,cjson.encode(json),routes..path.."/"..i..".env"})
     data = result
 
     if not (code == 0) then
