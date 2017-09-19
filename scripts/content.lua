@@ -167,15 +167,15 @@ local function upload_file_name(res)
   return nil
 end
 
-local function upload(content,volume)
+local function upload(info,content,volume)
   local upload = require "resty.upload"
   local data = {}
 
   local chunk = 8192
   local timeout = 10000
 
-  local dir = "/work/volumes/"..volume
-  os.execute("mkdir "..dir)
+  local dir = "/work/volumes/"..volume.."/"..info["path"]
+  os.execute("mkdir -p "..dir)
 
   local form, err = upload:new(chunk)
   if not form then
@@ -253,7 +253,7 @@ volume = string.gsub(volume,"\n","")
 
 local data
 if content["upload"] then
-  data = upload(content,volume)
+  data = upload(content["upload"],content,volume)
   data = cjson.encode(data)
 else
   ngx.req.read_body()
