@@ -5,7 +5,6 @@ volume=$(echo "$1" | base64 -d); shift
 
 export DOCKER_HOST=$docker_host
 
-rm -rf /work/volumes/$volume
 result=$(/usr/local/bin/docker volume rm "$volume")
 code=$?
 

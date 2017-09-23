@@ -172,9 +172,9 @@ local function upload(info,content,volume)
   local data = {}
 
   local chunk = 8192
-  local timeout = 10000
+  local timeout = 1000
 
-  local dir = "/work/volumes/"..volume.."/"..info["path"]
+  local dir = "/work/volumes/"..volume.."/"..info["dest"]
   os.execute("mkdir -p "..dir)
 
   local form, err = upload:new(chunk)
@@ -195,9 +195,15 @@ local function upload(info,content,volume)
     elseif typ == "header" then
       local file_name = upload_file_name(res)
       if file_name then
+        os.execute("mkdir -p "..dir.."/"..file_name)
+        os.execute("rmdir "   ..dir.."/"..file_name)
         file = io.open(dir.."/"..file_name, "w+")
         if file then
-          table.insert(data, { name = file_name })
+          table.insert(data,{
+            name = file_name,
+            kind = info["kind"],
+            bucket = info["bucket"],
+          })
         else
           ngx.log(ngx.ERR, "failed to write: ", dir.."/"..file_name)
         end
@@ -205,11 +211,11 @@ local function upload(info,content,volume)
     elseif typ == "body" then
       if file then
         file:write(res)
-        file = nil
       end
     elseif typ == "part_end" then
       if file then
         file:close()
+        file = nil
       end
     end
 
