@@ -147,22 +147,23 @@ local function authenticate(content)
   return credential
 end
 
-local function upload_file_name(res)
+local function upload_data(res)
   local head
   local content
 
   for i,line in pairs(res) do
     if i == 1 then
       head = line
-    elseif i== 2 then
+    elseif i == 2 then
       content = line
     end
   end
   if head == "Content-Disposition" and content then
-    local file_name = string.match(content,'; name="([^"]*)"')
-    if file_name and not (file_name == "") then
-      return file_name
+    local info = {}
+    for k,v in string.gmatch(content,'; ([^=]*)="([^"]*)"') do
+      info[k] = v
     end
+    return info
   end
   return nil
 end
@@ -186,40 +187,56 @@ local function upload(info,content,volume)
   form:set_timeout(timeout)
 
   local file
+  local upload_info = {}
+  local key
+  local buffer = ""
 
   while true do
     local typ,res,err = form:read()
+
     if not typ then
       ngx.log(ngx.ERR, "failed to read: ", err)
 
     elseif typ == "header" then
-      local file_name = upload_file_name(res)
-      if file_name then
-        os.execute("mkdir -p "..dir.."/"..file_name)
-        os.execute("rmdir "   ..dir.."/"..file_name)
-        file = io.open(dir.."/"..file_name, "w+")
-        if file then
-          table.insert(data,{
-            name = file_name,
-            kind = info["kind"],
-            bucket = info["bucket"],
-          })
-        else
-          ngx.log(ngx.ERR, "failed to write: ", dir.."/"..file_name)
+      local upload_data = upload_data(res)
+      if upload_data then
+        if upload_data["filename"] then
+          local file_name = upload_data["name"]
+          if file_name then
+            upload_info["name"] = file_name
+            file = io.open(dir.."/"..file_name, "w+")
+            if not file then
+              ngx.log(ngx.ERR, "failed to write: ", dir.."/"..file_name)
+            end
+          end
+        elseif upload_data["name"] then
+          key = upload_data["name"]
+          buffer = ""
         end
       end
     elseif typ == "body" then
       if file then
         file:write(res)
+      else
+        buffer = buffer..res
       end
     elseif typ == "part_end" then
       if file then
         file:close()
         file = nil
+      elseif key then
+        upload_info[key] = buffer
+        key = nil
+        buffer = ""
       end
     end
 
     if typ == "eof" then
+      if upload_info then
+        upload_info["bucket"] = info["bucket"]
+        table.insert(data,upload_info)
+        upload_info = nil
+      end
       break
     end
   end
