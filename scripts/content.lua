@@ -132,11 +132,12 @@ local function authenticate(content)
 
   local data = cjson.encode({token = token})
   local result, code = command(scripts["auth"],{data,cjson.encode(auth)})
-  local credential = cjson.decode(result)
 
   if not (code == 0) then
     response(401, result, {authenticate = prefix..'error="invalid_token"'}, content["unauthorized"], content, nil)
   end
+
+  local credential = cjson.decode(result)
 
   if auth["roles"] then
     if not auth["roles"][credential["role"]] then
