@@ -169,14 +169,14 @@ local function upload_data(res)
   return nil
 end
 
-local function upload(info,content,volume)
+local function upload(info,content,volume,volume_dir)
   local upload = require "resty.upload"
   local data = {}
 
   local chunk = 8192
   local timeout = 1000
 
-  local dir = "/work/volumes/"..volume.."/"..info["dest"]
+  local dir = volume_dir.."/"..info["dest"]
   os.execute("mkdir -p "..dir)
 
   local form, err = upload:new(chunk)
@@ -242,8 +242,6 @@ local function upload(info,content,volume)
     end
   end
 
-  command(scripts["copy_files"],{volume})
-
   return data
 end
 
@@ -266,18 +264,23 @@ if ngx.req.get_method() == "OPTIONS" then
   response(200,"ok",nil,nil,content,nil)
 end
 
+local volume
 local credential = {}
+local data
+
+volume = command(scripts["volume_create"],{})
+volume = string.gsub(volume,"\n","")
+
+local volume_dir = "/work/volumes/"..volume
+os.execute("mkdir -p "..volume_dir)
+
 if content["auth"] then
   credential = authenticate(content)
 end
 credential = cjson.encode(credential)
 
-local volume = command(scripts["volume_create"],{})
-volume = string.gsub(volume,"\n","")
-
-local data
 if content["upload"] then
-  data = upload(content["upload"],content,volume)
+  data = upload(content["upload"],content,volume,volume_dir)
   data = cjson.encode(data)
 else
   ngx.req.read_body()
@@ -291,6 +294,8 @@ else
     data = cjson.encode({})
   end
 end
+
+command(scripts["copy_files"],{volume})
 
 if content["commands"] then
   for i,json in ipairs(content["commands"]) do
